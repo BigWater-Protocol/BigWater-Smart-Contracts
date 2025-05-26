@@ -48,7 +48,7 @@ contract DePINStaking {
     function computeYield(address user) public view returns (uint256) {
         uint256 score = rdc.getScore(user);
         uint256 multiplier = getStakeMultiplier(user);
-        return (score * 1e18 * multiplier) / 1e36; // normalized: (score * multiplier) with 18 decimals
+        return (score * 1e18 * multiplier) / 1e36; 
     }
 
     /// @notice Claim yield in BWTR tokens (only once per cycle)
