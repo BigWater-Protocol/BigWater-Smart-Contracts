@@ -4,16 +4,34 @@ pragma solidity ^0.8.26;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @title BigWater Device NFT Contract
+/// @author 
+/// @notice ERC721 contract for minting NFTs representing registered devices
+/// @dev Uses ERC721URIStorage to store metadata URIs; only the owner can mint
 contract BigWaterDeviceNFT is ERC721URIStorage, Ownable {
+    /// @notice Counter for generating unique token IDs
     uint256 private nextId = 1;
 
+    /// @notice Maps a deviceId string to its corresponding NFT tokenId
     mapping(string => uint256) public deviceIdToTokenId;
+
+    /// @notice Maps an NFT tokenId back to its associated deviceId string
     mapping(uint256 => string) public tokenIdToDeviceId;
 
+    /// @notice Deploys the BigWaterDeviceNFT contract with name and symbol
     constructor() ERC721("BigWater Device NFT", "BWDN") Ownable(msg.sender) {}
 
-    /// @notice Mint a new NFT to represent a registered device
-    function mint(address to, string memory deviceId, string memory tokenURI) external onlyOwner returns (uint256) {
+    /// @notice Mints a new NFT to represent a device
+    /// @dev Only callable by the contract owner
+    /// @param to Address that will receive the NFT
+    /// @param deviceId Unique identifier of the device being registered
+    /// @param tokenURI Metadata URI for the NFT
+    /// @return tokenId The unique identifier of the minted NFT
+    function mint(address to, string memory deviceId, string memory tokenURI)
+        external
+        onlyOwner
+        returns (uint256)
+    {
         require(deviceIdToTokenId[deviceId] == 0, "Already minted");
 
         uint256 tokenId = nextId++;
@@ -26,10 +44,16 @@ contract BigWaterDeviceNFT is ERC721URIStorage, Ownable {
         return tokenId;
     }
 
+    /// @notice Returns the deviceId associated with a given tokenId
+    /// @param tokenId The ID of the NFT
+    /// @return deviceId The string identifier of the device
     function getDeviceId(uint256 tokenId) external view returns (string memory) {
         return tokenIdToDeviceId[tokenId];
     }
 
+    /// @notice Returns the tokenId associated with a given deviceId
+    /// @param deviceId The string identifier of the device
+    /// @return tokenId The ID of the NFT that represents the device
     function getTokenId(string memory deviceId) external view returns (uint256) {
         return deviceIdToTokenId[deviceId];
     }

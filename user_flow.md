@@ -10,7 +10,7 @@
      ├─────────────────────────────────▶ RDC (RewardDistribution)
      │
      │ ③ user calls claimRewards()
-     ├─────────────────────────────────▶ RDC transfers BWTR base reward
+     ├─────────────────────────────────▶ RDC transfers BIGW base reward
      │
      │ ④ protocol calls approve() + stake(amount)
      ├─────────────────────────────────▶ Staking
@@ -20,5 +20,5 @@
      ├─────────────────────────────────▶ Staking:
      │                                     └─ fetches score from RDC
      │                                     └─ applies stake multiplier
-     │                                     └─ sends boosted BWTR
+     │                                     └─ sends boosted BIGW
 ```
