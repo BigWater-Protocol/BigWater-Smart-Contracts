@@ -1,119 +1,87 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-/// @title DePIN Staking Contract for BIGW Tokens
-/// @author 
-/// @notice Allows users to stake tokens into a shared reward pool and claim yield based on scores
-/// @dev Uses external interfaces for ERC20 transfers and dynamic reward distribution logic
+/// @title Device Registry Interface for Reward Distribution
+/// @notice Provides methods to verify and fetch device ownership info
+interface IDeviceRegistry {
+    /// @notice Returns the owner of a registered device
+    /// @param deviceId The unique identifier of the device
+    /// @return The address of the device owner
+    function getDeviceOwner(string memory deviceId) external view returns (address);
 
-/// @notice Minimal interface for an ERC20 token
+    /// @notice Checks if a device is registered
+    /// @param deviceId The unique identifier of the device
+    /// @return True if the device is registered, false otherwise
+    function isDeviceRegistered(string memory deviceId) external view returns (bool);
+}
+
+/// @notice Minimal ERC20 interface for token transfers
 interface IERC20 {
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
     function transfer(address to, uint256 amount) external returns (bool);
 }
 
-/// @notice Interface for reward distribution scoring logic
-interface IRewardDistribution {
-    function getScore(address owner) external view returns (uint256);
-    function getParticipants() external view returns (address[] memory);
-}
-
-/// @notice Contract for staking and reward distribution in a DePIN system
-contract DePINStaking {
-    /// @notice The ERC20 token used for staking and rewards (e.g., BIGW)
+/// @title Reward Distribution Contract for DePIN Scores
+/// @author 
+/// @notice Manages score submissions and maintains a list of participants for reward distribution
+/// @dev Intended to be used by the DePINStaking contract
+contract RewardDistribution {
+    /// @notice The BWTR token used for rewards
     IERC20 public immutable bwtr;
 
-    /// @notice External contract that provides scores and participant lists
-    IRewardDistribution public immutable rdc;
+    /// @notice The device registry used to verify device ownership
+    IDeviceRegistry public immutable drc;
 
-    /// @notice Total amount of tokens currently staked in the pool
-    uint256 public totalStaked;
+    /// @notice Mapping of participant address to their latest score (1–100)
+    mapping(address => uint256) public scores;
 
-    /// @notice Percentage of the pool emitted each distribution round (e.g., 10 = 10%)
-    uint256 public emissionRate;
+    /// @notice Tracks whether an address has already been added as a participant
+    mapping(address => bool) public isParticipant;
 
-    /// @notice Accumulated claimable rewards per user
-    mapping(address => uint256) public claimableRewards;
+    /// @notice List of all participant addresses with non-zero scores
+    address[] public participants;
 
-    /// @notice Emitted when a user stakes tokens
-    event Staked(address indexed from, uint256 amount);
+    /// @notice Emitted when a new score is submitted
+    /// @param deviceId The device ID for which the score is submitted
+    /// @param owner The owner of the device receiving the score
+    /// @param score The submitted score
+    event ScoreSubmitted(string deviceId, address indexed owner, uint256 score);
 
-    /// @notice Emitted when yield is allocated during distribution
-    event YieldAllocated(uint256 distributed, uint256 timestamp);
-
-    /// @notice Emitted when a user claims rewards
-    event YieldClaimed(address indexed user, uint256 amount);
-
-    /// @param _bwtr Address of the ERC20 token contract used for staking
-    /// @param _rdc Address of the reward distribution contract
-    /// @param _emissionRate Percentage of the pool to emit each round (1-100)
-    constructor(address _bwtr, address _rdc, uint256 _emissionRate) {
-        require(_bwtr != address(0) && _rdc != address(0), "Invalid addresses");
-        require(_emissionRate > 0 && _emissionRate <= 100, "Emission rate must be 1-100");
-
+    /// @param _bwtr Address of the BWTR ERC20 token
+    /// @param _drc Address of the device registry contract
+    constructor(address _bwtr, address _drc) {
         bwtr = IERC20(_bwtr);
-        rdc = IRewardDistribution(_rdc);
-        emissionRate = _emissionRate;
+        drc = IDeviceRegistry(_drc);
     }
 
-    /// @notice Stake tokens into the shared pool
-    /// @param amount Amount of tokens to stake
-    function stake(uint256 amount) external {
-        require(amount > 0, "Amount must be > 0");
-        require(bwtr.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+    /// @notice Submit or update the score for a registered device
+    /// @dev Links the device to its owner and tracks the owner as a reward participant
+    /// @param deviceId The ID of the device being scored
+    /// @param score A score between 1 and 100 (inclusive)
+    function submitScore(string memory deviceId, uint256 score) external {
+        require(score > 0 && score <= 100, "Invalid score");
+        require(drc.isDeviceRegistered(deviceId), "Device not registered");
 
-        totalStaked += amount;
-        emit Staked(msg.sender, amount);
-    }
+        address owner = drc.getDeviceOwner(deviceId);
+        scores[owner] = score;
 
-    /// @notice Distribute emissionRate% of the pool to participants proportionally by score
-    /// @dev Only callable manually by anyone; uses external score logic from `rdc`
-    function distributeRewards() external {
-        address[] memory participants = rdc.getParticipants();
-        require(participants.length > 0, "No participants");
-
-        uint256 totalScore = 0;
-        for (uint256 i = 0; i < participants.length; ++i) {
-            totalScore += rdc.getScore(participants[i]);
-        }
-        require(totalScore > 0, "Total score is zero");
-
-        uint256 emission = (totalStaked * emissionRate) / 100;
-        for (uint256 i = 0; i < participants.length; ++i) {
-            address user = participants[i];
-            uint256 score = rdc.getScore(user);
-            if (score == 0) continue;
-
-            uint256 reward = (emission * score) / totalScore;
-            claimableRewards[user] += reward;
+        if (!isParticipant[owner]) {
+            participants.push(owner);
+            isParticipant[owner] = true;
         }
 
-        totalStaked -= emission;
-        emit YieldAllocated(emission, block.timestamp);
+        emit ScoreSubmitted(deviceId, owner, score);
     }
 
-    /// @notice Claim accumulated yield rewards
-    function claim() external {
-        uint256 amount = claimableRewards[msg.sender];
-        require(amount > 0, "No rewards");
-
-        claimableRewards[msg.sender] = 0;
-        require(bwtr.transfer(msg.sender, amount), "Transfer failed");
-
-        emit YieldClaimed(msg.sender, amount);
+    /// @notice Get the current score of a participant
+    /// @param owner The participant address
+    /// @return The participant's score
+    function getScore(address owner) external view returns (uint256) {
+        return scores[owner];
     }
 
-    /// @notice Update the emission rate (admin only)
-    /// @param rate New emission rate (1-100)
-    function updateEmissionRate(uint256 rate) external {
-        require(rate > 0 && rate <= 100, "Rate must be 1-100");
-        emissionRate = rate;
-    }
-
-    /// @notice Get the claimable reward balance for a user
-    /// @param user Address to query
-    /// @return Amount of claimable reward tokens
-    function getClaimable(address user) external view returns (uint256) {
-        return claimableRewards[user];
+    /// @notice Get the list of all participant addresses
+    /// @return Array of participant addresses
+    function getParticipants() external view returns (address[] memory) {
+        return participants;
     }
 }
