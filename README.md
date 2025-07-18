@@ -1,4 +1,4 @@
-# DePIN Contracts Deployment
+# BigWater Smart Contracts
 
 This repository contains a full stack of smart contracts to simulate a DePIN reward flow, including:
 
@@ -40,31 +40,3 @@ The script will:
 6. Check pre- and post-stake balances
 
 ---
-
-## ✅ Expected Output
-
-Look for:
-
-- ✅ Funded RewardDistribution and approved Staking  
-- ✅ Devices registered  
-- ✅ Scores submitted  
-- ✅ Staked: xx BIGW  
-- ✅ Rewards distributed  
-- ✅ All tests passed 🎉
-
-Final token balances of user accounts will be printed as:
-
-```
-User1 Reward: 2.0 BIGW
-User2 Reward: 1.0 BIGW
-...
-```
----
-
-## 🔁 Reset & Retry
-
-To re-run from a clean state (local Hardhat network), simply run:
-
-```bash
-npx hardhat run scripts/deploy.js
-```
