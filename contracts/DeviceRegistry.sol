@@ -5,9 +5,9 @@ pragma solidity ^0.8.26;
 /// @notice Interface for the NFT contract used to mint device NFTs
 interface IDeviceNFT {
     /// @notice Mints a new NFT for a device
-    /// @param to The address receiving the NFT
+    /// @param to The address receiving the BigWater NFT
     /// @param deviceId The unique string identifier of the device
-    /// @param tokenURI The metadata URI of the device NFT
+    /// @param tokenURI The metadata URI of the BigWater NFT
     /// @return The ID of the newly minted NFT
     function mint(address to, string memory deviceId, string memory tokenURI) external returns (uint256);
 }
