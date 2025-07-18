@@ -12,9 +12,9 @@ This repository contains a full stack of smart contracts to simulate a DePIN rew
 
 ## 🛠 Requirements
 
-- Node.js >= 18.x
+- Node.js >= 20.x
 - Hardhat (installed locally)
-- Dependencies installed:
+- Dependencies installed by:-
 
 ```bash
 npm install
@@ -35,9 +35,9 @@ The script will:
 1. Deploy all contracts
 2. Register 5 test devices (assigned to separate accounts)
 3. Submit mock scores
-4. Stake 100 BIGW tokens from the deployer
+4. Stake BIGW tokens from the deployer
 5. Distribute rewards based on the scores
-6. Print pre- and post-stake balances
+6. Check pre- and post-stake balances
 
 ---
 
@@ -48,15 +48,15 @@ Look for:
 - ✅ Funded RewardDistribution and approved Staking  
 - ✅ Devices registered  
 - ✅ Scores submitted  
-- ✅ Staked: 100.0 BIGW  
+- ✅ Staked: xx BIGW  
 - ✅ Rewards distributed  
 - ✅ All tests passed 🎉
 
 Final token balances of user accounts will be printed as:
 
 ```
-User1 Reward: 20.0 BIGW
-User2 Reward: 15.0 BIGW
+User1 Reward: 2.0 BIGW
+User2 Reward: 1.0 BIGW
 ...
 ```
 ---
