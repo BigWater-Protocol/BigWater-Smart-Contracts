@@ -25,4 +25,4 @@ jobs:
         run: npx hardhat compile
 
       - name: Run Hardhat deployment script
-        run: npx hardhat run scripts/deploy.js --network hardhat
+        run: npx hardhat run scripts/e2e.js --network hardhat
