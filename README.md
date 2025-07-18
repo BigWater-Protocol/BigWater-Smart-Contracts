@@ -3,7 +3,7 @@
 This repository contains a full stack of smart contracts to simulate a DePIN reward flow, including:
 
 - `BigWaterToken` (Capped ERC20 token)
-- `BigWaterDeviceNFT` (ERC721 NFT)
+- `BigWaterDeviceNFT` (ERC721 NFT for users registering their DePIN device)
 - `DeviceRegistry` (Manages device ownership)
 - `RewardDistribution` (Tracks scores and manages participant rewards)
 - `DePINStaking` (Staking + reward payout logic)
