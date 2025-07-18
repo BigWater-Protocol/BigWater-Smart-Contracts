@@ -1,0 +1,103 @@
+// scripts/deploy.js
+const hre = require("hardhat");
+const { ethers } = hre;
+
+async function main() {
+  const [deployer, user1, user2, user3, user4, user5] = await ethers.getSigners();
+  console.log(`Deployer: ${deployer.address}`);
+  console.log(`Users:`, user1.address, user2.address, user3.address, user4.address, user5.address);
+
+  // Deploy BigWaterToken
+  const Token = await ethers.getContractFactory("BigWaterToken");
+  const cap = ethers.parseEther("110000");
+  const initialSupply = ethers.parseEther("11000");
+  const token = await Token.deploy(deployer.address, initialSupply, cap);
+  await token.waitForDeployment();
+  console.log(`BIGW deployed at: ${await token.getAddress()}`);
+
+  // Deploy NFT
+  const NFT = await ethers.getContractFactory("BigWaterDeviceNFT");
+  const nft = await NFT.deploy();
+  await nft.waitForDeployment();
+  console.log(`NFT deployed at: ${await nft.getAddress()}`);
+
+  // Deploy DeviceRegistry
+  const Registry = await ethers.getContractFactory("DeviceRegistry");
+  const registry = await Registry.deploy(await nft.getAddress());
+  await registry.waitForDeployment();
+  console.log(`Registry deployed at: ${await registry.getAddress()}`);
+
+  // Transfer NFT ownership to registry
+  await nft.transferOwnership(await registry.getAddress());
+
+  // Deploy RewardDistribution
+  const Rewards = await ethers.getContractFactory("RewardDistribution");
+  const rewards = await Rewards.deploy(await token.getAddress(), await registry.getAddress());
+  await rewards.waitForDeployment();
+  console.log(`RewardDistribution deployed at: ${await rewards.getAddress()}`);
+
+  // Deploy DePINStaking
+  const Staking = await ethers.getContractFactory("DePINStaking");
+  const staking = await Staking.deploy(await token.getAddress(), await rewards.getAddress());
+  await staking.waitForDeployment();
+  console.log(`DePINStaking deployed at: ${await staking.getAddress()}`);
+
+  // Fund contracts and approve staking
+  await token.transfer(await rewards.getAddress(), ethers.parseEther("1000"));
+  await token.approve(await staking.getAddress(), ethers.parseEther("100"));
+  console.log("✅ Funded RewardDistribution and approved Staking");
+
+  // Register 5 devices
+  await registry.registerDevice(user1.address, "device1", "ipfs://1");
+  await registry.registerDevice(user2.address, "device2", "ipfs://2");
+  await registry.registerDevice(user3.address, "device3", "ipfs://3");
+  await registry.registerDevice(user4.address, "device4", "ipfs://4");
+  await registry.registerDevice(user5.address, "device5", "ipfs://5");
+  console.log("✅ Devices registered");
+
+  // Submit scores
+  await rewards.submitScore("device1", 50);
+  await rewards.submitScore("device2", 20);
+  await rewards.submitScore("device3", 10);
+  await rewards.submitScore("device4", 10);
+  await rewards.submitScore("device5", 10);
+  console.log("✅ Scores submitted");
+
+  // Print participant scores
+  const participants = await rewards.getParticipants();
+  for (const addr of participants) {
+    const score = await rewards.getScore(addr);
+    console.log(`  → Participant ${addr} has score ${score}`);
+  }
+
+  // Print deployer balance before staking
+  const balanceBefore = await token.balanceOf(deployer.address);
+  console.log(`Deployer balance before stake: ${ethers.formatEther(balanceBefore)} BIGW`);
+
+  // Stake
+  await staking.stake(ethers.parseEther("100"));
+  const balanceAfter = await token.balanceOf(deployer.address);
+  console.log(`✅ Staked: 100.0 BIGW`);
+  console.log(`Deployer balance after stake: ${ethers.formatEther(balanceAfter)} BIGW`);
+
+  // Distribute rewards
+  await staking.distributeRewards();
+  console.log(`✅ Rewards distributed, totalStaked now: ${ethers.formatEther(await staking.totalStaked())} BIGW`);
+
+  // Final balances
+  const users = [user1, user2, user3, user4, user5];
+  for (let i = 0; i < users.length; i++) {
+    const bal = await token.balanceOf(users[i].address);
+    console.log(`User${i + 1} Reward: ${ethers.formatEther(bal)} BIGW`);
+  }
+
+  const rewardDistBalance = await token.balanceOf(await rewards.getAddress());
+  console.log(`RewardDistribution post-distribution balance: ${ethers.formatEther(rewardDistBalance)} BIGW`);
+
+  console.log("✅ All tests passed");
+}
+
+main().catch((error) => {
+  console.error("❌ Script error:", error);
+  process.exit(1);
+});

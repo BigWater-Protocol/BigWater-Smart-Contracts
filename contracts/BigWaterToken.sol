@@ -18,12 +18,12 @@ contract BigWaterToken is ERC20, Ownable {
     /// @notice Deploys the token contract with an initial supply and supply cap
     /// @param initialSupply The number of tokens to mint on deployment
     /// @param maxCap The maximum supply limit for the token
-    constructor(uint256 initialSupply, uint256 maxCap) 
-        ERC20("BigWater Token", "BIGW") 
-        Ownable(msg.sender) 
+    constructor(address recipient, uint256 initialSupply, uint256 maxCap) 
+    ERC20("BigWater Token", "BIGW") 
+    Ownable(msg.sender) 
     {
         require(initialSupply <= maxCap, "Initial exceeds cap");
-        _mint(msg.sender, initialSupply);
+        _mint(recipient, initialSupply);
         cap = maxCap;
     }
 
