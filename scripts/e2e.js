@@ -1,9 +1,9 @@
-// scripts/deploy.js
+// scripts/e2e.js
 const hre = require("hardhat");
 const { ethers } = hre;
 
 async function main() {
-  const [deployer, user1, user2, user3, user4, user5] = await ethers.getSigners();
+  const [deployer, user1, user2, user3, user4, user5, user6, user7, user8] = await ethers.getSigners();
   console.log(`Deployer: ${deployer.address}`);
   console.log(`Users:`, user1.address, user2.address, user3.address, user4.address, user5.address);
 
@@ -99,7 +99,6 @@ async function main() {
   console.log(`RewardDistribution post-distribution balance: ${ethers.formatEther(rewardDistBalance)} BIGW`);
 
    // === Batch Register 3 New Users ===
-  const [user6, user7, user8] = await hre.ethers.getSigners(); // get fresh signers if needed
   const batchOwners = [user6.address, user7.address, user8.address];
   const batchDeviceIds = ["device6", "device7", "device8"];
   const batchTokenURIs = ["ipfs://6", "ipfs://7", "ipfs://8"];
