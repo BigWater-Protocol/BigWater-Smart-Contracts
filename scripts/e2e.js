@@ -87,12 +87,45 @@ async function main() {
   // Final balances
   const users = [user1, user2, user3, user4, user5];
   for (let i = 0; i < users.length; i++) {
-    const bal = await token.balanceOf(users[i].address);
-    console.log(`User${i + 1} Reward: ${ethers.formatEther(bal)} BIGW`);
+  const bal = await token.balanceOf(users[i].address);
+  console.log(`User${i + 1} Reward: ${ethers.formatEther(bal)} BIGW`);
+    if (bal === 0n) {
+      throw new Error(`❌ User${i + 1} (${users[i].address}) received 0 BIGW`);
+    }
   }
+  console.log("✅ All users received rewards > 0");
 
   const rewardDistBalance = await token.balanceOf(await rewards.getAddress());
   console.log(`RewardDistribution post-distribution balance: ${ethers.formatEther(rewardDistBalance)} BIGW`);
+
+   // === Batch Register 3 New Users ===
+  const [user6, user7, user8] = await hre.ethers.getSigners(); // get fresh signers if needed
+  const batchOwners = [user6.address, user7.address, user8.address];
+  const batchDeviceIds = ["device6", "device7", "device8"];
+  const batchTokenURIs = ["ipfs://6", "ipfs://7", "ipfs://8"];
+
+  // Manually impersonate for simplicity if not funded
+  await registry.batchRegisterDevices(batchOwners, batchDeviceIds, batchTokenURIs);
+  console.log("✅ Batch upload complete: device6, device7, device8");
+
+  // === Verify Devices By Owner ===
+  for (let i = 0; i < batchOwners.length; i++) {
+    const devices = await registry.getDevicesByOwner(batchOwners[i]);
+    console.log(`User${i + 6} Devices:`, devices);
+    if (!devices.includes(batchDeviceIds[i])) {
+      throw new Error(`❌ device ${batchDeviceIds[i]} not found for user${i + 6}`);
+    }
+  }
+
+  // === Verify All Registered Owners Contains Batch Owners ===
+  const allOwners = await registry.getAllRegisteredOwners();
+  for (let i = 0; i < batchOwners.length; i++) {
+    if (!allOwners.includes(batchOwners[i])) {
+      throw new Error(`❌ Batch owner ${batchOwners[i]} not found in registry`);
+    }
+  }
+
+  console.log("✅ Batch registration + verification for 3 new users passed");
 
   console.log("✅ All tests passed");
 }
