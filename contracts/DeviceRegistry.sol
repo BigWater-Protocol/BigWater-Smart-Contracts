@@ -5,15 +5,14 @@ pragma solidity ^0.8.26;
 /// @notice Interface for the NFT contract used to mint device NFTs
 interface IDeviceNFT {
     /// @notice Mints a new NFT for a device
-    /// @param to The address receiving the BigWater NFT
+    /// @param to The address receiving the NFT
     /// @param deviceId The unique string identifier of the device
-    /// @param tokenURI The metadata URI of the BigWater NFT
+    /// @param tokenURI The metadata URI of the device NFT
     /// @return The ID of the newly minted NFT
     function mint(address to, string memory deviceId, string memory tokenURI) external returns (uint256);
 }
 
 /// @title Device Registry Contract
-/// @author 
 /// @notice Manages registration of devices and mints NFTs for them
 /// @dev Uses a hash of the device ID as the key in the registry
 contract DeviceRegistry {
@@ -33,6 +32,12 @@ contract DeviceRegistry {
 
     /// @notice Immutable reference to the external NFT contract
     IDeviceNFT public immutable nft;
+
+    /// @notice Array of all unique registered owners
+    address[] private registeredOwners;
+
+    /// @notice Tracks whether an address has already been recorded
+    mapping(address => bool) private isOwnerRecorded;
 
     /// @notice Emitted when a device is successfully registered and an NFT is minted
     /// @param owner The address of the device owner
@@ -70,6 +75,11 @@ contract DeviceRegistry {
         });
 
         ownerToDevices[owner].push(deviceId);
+
+        if (!isOwnerRecorded[owner]) {
+            isOwnerRecorded[owner] = true;
+            registeredOwners.push(owner);
+        }
 
         emit DeviceRegistered(owner, deviceId, nftId);
     }
@@ -122,5 +132,11 @@ contract DeviceRegistry {
     /// @return An array of device identifiers
     function getDevicesByOwner(address user) external view returns (string[] memory) {
         return ownerToDevices[user];
+    }
+
+    /// @notice Returns all accounts that have registered at least one device
+    /// @return An array of unique owner addresses
+    function getAllRegisteredOwners() external view returns (address[] memory) {
+        return registeredOwners;
     }
 }
