@@ -2,7 +2,7 @@ name: Run Hardhat Script
 
 on:
   push:
-    branches: [ test-batch-uploads ]
+    branches: [ main ]
   pull_request:
 
 jobs:
