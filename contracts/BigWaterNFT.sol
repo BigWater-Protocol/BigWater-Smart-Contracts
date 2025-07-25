@@ -18,7 +18,7 @@ contract BigWaterDeviceNFT is ERC721URIStorage, Ownable2Step {
     mapping(uint256 => string) public tokenIdToDeviceId;
 
     /// @notice Deploys the BigWaterDeviceNFT contract with name and symbol
-    constructor() ERC721("BigWater Device NFT", "BWDN") {}
+    constructor(address initialOwner) ERC721("BigWater Device NFT", "BWDN") Ownable2Step(initialOwner) {}
 
     /// @notice Mints a new NFT to represent a device
     /// @dev Only callable by the contract owner

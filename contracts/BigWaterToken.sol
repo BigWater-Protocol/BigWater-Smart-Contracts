@@ -18,8 +18,9 @@ contract BigWaterToken is ERC20, Ownable2Step {
     /// @param recipient Address that receives the initial supply
     /// @param initialSupply Amount of tokens to mint at deployment
     /// @param maxCap Maximum supply of the token
-    constructor(address recipient, uint256 initialSupply, uint256 maxCap)
-        ERC20("BigWater Token", "BIGW")
+    constructor(address recipient, uint256 initialSupply, uint256 maxCap) 
+        ERC20("BigWater Token", "BIGW") 
+        Ownable2Step(recipient) 
     {
         require(initialSupply <= maxCap, "Initial exceeds cap");
         _mint(recipient, initialSupply);

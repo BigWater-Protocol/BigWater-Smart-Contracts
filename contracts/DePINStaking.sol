@@ -31,11 +31,11 @@ contract DePINStaking is Ownable2Step {
     /// @notice Initializes the staking contract
     /// @param _bwtr Address of the BWTR token
     /// @param _rdc Address of the reward distribution contract
-    constructor(address _bwtr, address _rdc) {
+    /// @param initialOwner Address to set as the initial owner
+    constructor(address _bwtr, address _rdc, address initialOwner) Ownable2Step(initialOwner) {
         require(_bwtr != address(0) && _rdc != address(0), "Invalid addresses");
         bwtr = IERC20(_bwtr);
         rdc = IRewardDistribution(_rdc);
-        _transferOwnership(msg.sender);
     }
 
     /// @notice Allows users to stake BWTR tokens

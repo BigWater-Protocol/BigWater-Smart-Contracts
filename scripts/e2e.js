@@ -16,35 +16,37 @@ async function main() {
 
   // Deploy NFT
   const NFT = await ethers.getContractFactory("BigWaterDeviceNFT");
-  const nft = await NFT.deploy();
+  const nft = await NFT.deploy(deployer.address);
   await nft.waitForDeployment();
   console.log(`NFT deployed at: ${await nft.getAddress()}`);
 
-  // Deploy DeviceRegistry
+  // Deploy DeviceRegistry (needs initialOwner as 2nd arg)
   const Registry = await ethers.getContractFactory("DeviceRegistry");
-  const registry = await Registry.deploy(await nft.getAddress());
+  const registry = await Registry.deploy(await nft.getAddress(), deployer.address);
   await registry.waitForDeployment();
   console.log(`Registry deployed at: ${await registry.getAddress()}`);
 
+  // NFT ownership must be transferred to registry (for mint access)
   await nft.transferOwnership(await registry.getAddress());
 
-  // Deploy RewardDistribution
+  // Deploy RewardDistribution (submitScore now restricted to owner)
   const Rewards = await ethers.getContractFactory("RewardDistribution");
-  const rewards = await Rewards.deploy(await token.getAddress(), await registry.getAddress());
+  const rewards = await Rewards.deploy(await token.getAddress(), await registry.getAddress(), deployer.address);
   await rewards.waitForDeployment();
   console.log(`RewardDistribution deployed at: ${await rewards.getAddress()}`);
 
   // Deploy DePINStaking
   const Staking = await ethers.getContractFactory("DePINStaking");
-  const staking = await Staking.deploy(await token.getAddress(), await rewards.getAddress());
+  const staking = await Staking.deploy(await token.getAddress(), await rewards.getAddress(), deployer.address);
   await staking.waitForDeployment();
   console.log(`DePINStaking deployed at: ${await staking.getAddress()}`);
 
+  // Fund rewards and staking
   await token.transfer(await rewards.getAddress(), ethers.parseEther("1000"));
   await token.approve(await staking.getAddress(), ethers.parseEther("100"));
   console.log("✅ Funded RewardDistribution and approved Staking");
 
-  // Register 5 initial devices
+  // Register 5 devices
   await registry.registerDevice(user1.address, "device1", "bigw://1");
   await registry.registerDevice(user2.address, "device2", "bigw://2");
   await registry.registerDevice(user3.address, "device3", "bigw://3");
@@ -52,20 +54,20 @@ async function main() {
   await registry.registerDevice(user5.address, "device5", "bigw://5");
   console.log("✅ Devices registered");
 
+  // Submit scores (requires deployer/owner)
   await rewards.submitScore("device1", 50);
   await rewards.submitScore("device2", 20);
   await rewards.submitScore("device3", 10);
   await rewards.submitScore("device4", 10);
   await rewards.submitScore("device5", 10);
+  console.log("✅ Scores submitted");
 
-  // === Remove 2 participants
-  const remove1 = user1.address;
-  const remove2 = user2.address;
-  await rewards.removeParticipant(remove1);
-  await rewards.removeParticipant(remove2);
-  console.log(`✅ Removed participants: ${remove1}, ${remove2}`);
+  // Remove 2 participants
+  await rewards.removeParticipant(user1.address);
+  await rewards.removeParticipant(user2.address);
+  console.log(`✅ Removed participants: ${user1.address}, ${user2.address}`);
 
-  // === Add 1 more participant after removal
+  // Register new participant
   const newWallet = ethers.Wallet.createRandom();
   const newDevice = "rejoin-device";
   const newUri = "bigw://rejoin";
