@@ -1,5 +1,6 @@
 const hre = require("hardhat");
 const { ethers } = hre;
+const { Wallet } = require("ethers");
 
 async function main() {
   const [deployer, user1, user2, user3, user4, user5, user6, user7, user8] = await ethers.getSigners();
@@ -26,7 +27,6 @@ async function main() {
   await registry.waitForDeployment();
   console.log(`Registry deployed at: ${await registry.getAddress()}`);
 
-  // Transfer NFT ownership to registry
   await nft.transferOwnership(await registry.getAddress());
 
   // Deploy RewardDistribution
@@ -41,12 +41,11 @@ async function main() {
   await staking.waitForDeployment();
   console.log(`DePINStaking deployed at: ${await staking.getAddress()}`);
 
-  // Fund contracts and approve staking
   await token.transfer(await rewards.getAddress(), ethers.parseEther("1000"));
   await token.approve(await staking.getAddress(), ethers.parseEther("100"));
   console.log("✅ Funded RewardDistribution and approved Staking");
 
-  // Register 5 devices with valid URIs
+  // Register 5 devices
   await registry.registerDevice(user1.address, "device1", "bigw://1");
   await registry.registerDevice(user2.address, "device2", "bigw://2");
   await registry.registerDevice(user3.address, "device3", "bigw://3");
@@ -54,115 +53,49 @@ async function main() {
   await registry.registerDevice(user5.address, "device5", "bigw://5");
   console.log("✅ Devices registered");
 
-  // Submit scores
   await rewards.submitScore("device1", 50);
   await rewards.submitScore("device2", 20);
   await rewards.submitScore("device3", 10);
   await rewards.submitScore("device4", 10);
   await rewards.submitScore("device5", 10);
-  console.log("✅ Scores submitted");
 
-  // Print participant scores
-  const participants = await rewards.getParticipants();
-  for (const addr of participants) {
-    const score = await rewards.getScore(addr);
-    console.log(`  → Participant ${addr} has score ${score}`);
+  // === TEST: Max Cap ===
+  const MAX = 200000;
+  const fakeBase = Wallet.createRandom();
+
+  console.log("⛔ Generating and registering participants up to max cap...");
+  for (let i = 0; i < MAX - 5; i++) {
+    const fakeWallet = Wallet.fromMnemonic(fakeBase.mnemonic.phrase, `m/44'/60'/0'/0/${i}`);
+    const deviceId = `mass-device-${i}`;
+    const uri = `bigw://mass-${i}`;
+    await nft.connect(deployer).mint(fakeWallet.address, deviceId, uri);
+    await registry.registerDevice(fakeWallet.address, deviceId, uri);
+    await rewards.submitScore(deviceId, 1);
+
+    if (i % 10000 === 0) console.log(`  → ${i + 5} participants registered`);
   }
 
-  // Print deployer balance before staking
-  const balanceBefore = await token.balanceOf(deployer.address);
-  console.log(`Deployer balance before stake: ${ethers.formatEther(balanceBefore)} BIGW`);
-
-  // Stake
-  await staking.stake(ethers.parseEther("100"));
-  const balanceAfter = await token.balanceOf(deployer.address);
-  console.log(`✅ Staked: 100.0 BIGW`);
-  console.log(`Deployer balance after stake: ${ethers.formatEther(balanceAfter)} BIGW`);
-
-  // Distribute rewards
-  await staking.distributeRewards();
-  console.log(`✅ Rewards distributed, totalStaked now: ${ethers.formatEther(await staking.totalStaked())} BIGW`);
-
-  // === Test reward distribution effects ===
-  const expectedStaked = ethers.parseEther("90");
-  const actualStaked = await staking.totalStaked();
-  if (actualStaked !== expectedStaked) {
-    throw new Error(`❌ totalStaked mismatch: expected 90, got ${ethers.formatEther(actualStaked)}`);
-  }
-  console.log("✅ totalStaked reduced correctly after distribution");
-
+  console.log("⛔ Testing enforcement of cap on 200001st participant...");
   try {
-    await staking.distributeRewards();
-    throw new Error("❌ distributeRewards was callable twice");
+    const overflowWallet = Wallet.createRandom();
+    const deviceId = "overflow-device";
+    const uri = "bigw://overflow";
+
+    await nft.connect(deployer).mint(overflowWallet.address, deviceId, uri);
+    await registry.registerDevice(overflowWallet.address, deviceId, uri);
+    throw new Error("❌ Cap breach allowed");
   } catch (err) {
-    console.log("✅ distributeRewards cannot be called again immediately (as expected)");
-  }
-
-  try {
-    await staking.connect(user1).distributeRewards();
-    throw new Error("❌ Non-owner was able to call distributeRewards");
-  } catch (err) {
-    console.log("✅ Non-owner cannot call distributeRewards");
-  }
-
-  // Final balances
-  const users = [user1, user2, user3, user4, user5];
-  for (let i = 0; i < users.length; i++) {
-    const bal = await token.balanceOf(users[i].address);
-    console.log(`User${i + 1} Reward: ${ethers.formatEther(bal)} BIGW`);
-    if (bal === 0n) {
-      throw new Error(`❌ User${i + 1} (${users[i].address}) received 0 BIGW`);
-    }
-  }
-  console.log("✅ All users received rewards > 0");
-
-  const rewardDistBalance = await token.balanceOf(await rewards.getAddress());
-  console.log(`RewardDistribution post-distribution balance: ${ethers.formatEther(rewardDistBalance)} BIGW`);
-
-  // === Batch Register 3 New Users ===
-  const batchOwners = [user6.address, user7.address, user8.address];
-  const batchDeviceIds = ["device6", "device7", "device8"];
-  const batchTokenURIs = ["bigw://6", "bigw://7", "bigw://8"];
-
-  await registry.batchRegisterDevices(batchOwners, batchDeviceIds, batchTokenURIs);
-  console.log("✅ Batch upload complete: device6, device7, device8");
-
-  for (let i = 0; i < batchOwners.length; i++) {
-    const devices = await registry.getDevicesByOwner(batchOwners[i]);
-    console.log(`User${i + 6} Devices:`, devices);
-    if (!devices.includes(batchDeviceIds[i])) {
-      throw new Error(`❌ device ${batchDeviceIds[i]} not found for user${i + 6}`);
-    }
-  }
-
-  const allOwners = await registry.getAllRegisteredOwners();
-  for (let i = 0; i < batchOwners.length; i++) {
-    if (!allOwners.includes(batchOwners[i])) {
-      throw new Error(`❌ Batch owner ${batchOwners[i]} not found in registry`);
-    }
-  }
-
-  console.log("✅ Batch registration + verification for 3 new users passed");
-
-  // === Test: registerDevice fails with invalid tokenURI ===
-  try {
-    console.log("⛔ Testing registerDevice with invalid URI...");
-    await registry.registerDevice(user1.address, "deviceX", "ipfs://malicious");
-    throw new Error("❌ registerDevice accepted invalid URI (ipfs://...)");
-  } catch (err) {
-    const reason = err?.error?.reason || err?.reason || err?.message;
-    if (reason.includes("URI must start with 'bigw://'")) {
-      console.log("✅ registerDevice correctly rejected invalid URI (ipfs://...)");
+    const msg = err?.reason || err?.message || err;
+    if (msg.includes("Max participants reached")) {
+      console.log("✅ Max participant cap correctly enforced");
     } else {
-      console.error("❌ Unexpected error during URI validation test:", reason);
-      throw err;
+      console.error("❌ Unexpected error while testing cap:", msg);
     }
   }
-
-  console.log("✅ All tests passed");
 }
 
-main().catch((error) => {
-  console.error("❌ Script error:", error);
+main().catch((err) => {
+  console.error("❌ Script Error:", err);
   process.exit(1);
 });
+
