@@ -56,7 +56,7 @@ contract DeviceRegistry is Ownable2Step {
         require(_isValidURI(tokenURI), "URI must start with 'bigw://'");
         require(nft.owner() == address(this), "Registry must own NFT contract");
 
-        bytes32 idHash = keccak256(abi.encodePacked(deviceId));
+        bytes32 idHash = keccak256(abi.encode(deviceId));
         require(!devices[idHash].registered, "Already registered");
 
         uint256 nftId = nft.mint(owner, deviceId, tokenURI);
@@ -95,17 +95,17 @@ contract DeviceRegistry is Ownable2Step {
     }
 
     function getDeviceOwner(string memory deviceId) external view returns (address) {
-        bytes32 idHash = keccak256(abi.encodePacked(deviceId));
+        bytes32 idHash = keccak256(abi.encode(deviceId));
         return devices[idHash].owner;
     }
 
     function isDeviceRegistered(string memory deviceId) external view returns (bool) {
-        bytes32 idHash = keccak256(abi.encodePacked(deviceId));
+        bytes32 idHash = keccak256(abi.encode(deviceId));
         return devices[idHash].registered;
     }
 
     function getDeviceNFT(string memory deviceId) external view returns (uint256) {
-        bytes32 idHash = keccak256(abi.encodePacked(deviceId));
+        bytes32 idHash = keccak256(abi.encode(deviceId));
         return devices[idHash].nftId;
     }
 
