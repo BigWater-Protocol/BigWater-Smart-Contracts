@@ -14,9 +14,8 @@ interface IDeviceNFT {
 
 /// @title Device Registry Contract
 /// @notice Manages registration of devices and mints NFTs for them
-/// @dev Uses a hash of the device ID as the key in the registry
+/// @dev Devices are keyed by the hash of their deviceId. Accepts only URIs starting with 'bigw://'.
 contract DeviceRegistry {
-    /// @notice Struct representing a registered device
     struct Device {
         address owner;
         string deviceId;
@@ -24,42 +23,32 @@ contract DeviceRegistry {
         uint256 nftId;
     }
 
-    /// @notice Mapping of deviceId hash to Device info
     mapping(bytes32 => Device) public devices;
-
-    /// @notice Mapping of owner to list of their device IDs
     mapping(address => string[]) public ownerToDevices;
 
-    /// @notice Immutable reference to the external NFT contract
     IDeviceNFT public immutable nft;
 
-    /// @notice Array of all unique registered owners
     address[] private registeredOwners;
-
-    /// @notice Tracks whether an address has already been recorded
     mapping(address => bool) private isOwnerRecorded;
 
-    /// @notice Emitted when a device is successfully registered and an NFT is minted
-    /// @param owner The address of the device owner
-    /// @param deviceId The string identifier of the device
-    /// @param nftId The ID of the minted NFT
     event DeviceRegistered(address indexed owner, string deviceId, uint256 nftId);
 
-    /// @notice Initializes the DeviceRegistry contract
-    /// @param _nftAddress Address of the IDeviceNFT-compatible contract
+    /// @notice Initializes the registry with the NFT contract address
+    /// @param _nftAddress Address of the NFT contract
     constructor(address _nftAddress) {
         require(_nftAddress != address(0), "Invalid NFT address");
         nft = IDeviceNFT(_nftAddress);
     }
 
-    /// @notice Registers a new device and mints an NFT for it
+    /// @notice Registers a new device and mints an NFT
     /// @param owner Address of the device owner
-    /// @param deviceId Unique string identifier for the device
-    /// @param tokenURI Metadata URI for the device NFT
+    /// @param deviceId Unique identifier for the device
+    /// @param tokenURI Metadata URI for the device NFT; must begin with 'bigw://'
     function registerDevice(address owner, string memory deviceId, string memory tokenURI) public {
         require(owner != address(0), "Invalid owner");
         require(bytes(deviceId).length > 0, "Empty deviceId");
         require(bytes(tokenURI).length > 0, "Empty tokenURI");
+        require(_isValidURI(tokenURI), "URI must start with 'bigw://'");
 
         bytes32 idHash = keccak256(abi.encodePacked(deviceId));
         require(!devices[idHash].registered, "Already registered");
@@ -84,10 +73,10 @@ contract DeviceRegistry {
         emit DeviceRegistered(owner, deviceId, nftId);
     }
 
-    /// @notice Registers multiple devices in a batch
-    /// @param owners Array of device owner addresses
+    /// @notice Batch registers multiple devices
+    /// @param owners Array of owner addresses
     /// @param deviceIds Array of device identifiers
-    /// @param tokenURIs Array of metadata URIs for each device NFT
+    /// @param tokenURIs Array of metadata URIs
     function batchRegisterDevices(
         address[] calldata owners,
         string[] calldata deviceIds,
@@ -103,40 +92,55 @@ contract DeviceRegistry {
         }
     }
 
-    /// @notice Gets the owner address of a registered device
-    /// @param deviceId The identifier of the device
-    /// @return The address of the device owner
+    /// @notice Gets the owner of a device
+    /// @param deviceId The device ID
+    /// @return The address of the owner
     function getDeviceOwner(string memory deviceId) external view returns (address) {
         bytes32 idHash = keccak256(abi.encodePacked(deviceId));
         return devices[idHash].owner;
     }
 
     /// @notice Checks if a device is registered
-    /// @param deviceId The identifier of the device
-    /// @return True if the device is registered, otherwise false
+    /// @param deviceId The device ID
+    /// @return True if registered
     function isDeviceRegistered(string memory deviceId) external view returns (bool) {
         bytes32 idHash = keccak256(abi.encodePacked(deviceId));
         return devices[idHash].registered;
     }
 
-    /// @notice Gets the NFT ID associated with a registered device
-    /// @param deviceId The identifier of the device
-    /// @return The ID of the NFT representing the device
+    /// @notice Gets the NFT ID for a device
+    /// @param deviceId The device ID
+    /// @return The NFT ID
     function getDeviceNFT(string memory deviceId) external view returns (uint256) {
         bytes32 idHash = keccak256(abi.encodePacked(deviceId));
         return devices[idHash].nftId;
     }
 
-    /// @notice Retrieves all device IDs registered by a specific owner
-    /// @param user The address of the device owner
-    /// @return An array of device identifiers
+    /// @notice Gets all device IDs registered by a user
+    /// @param user The owner's address
+    /// @return An array of device IDs
     function getDevicesByOwner(address user) external view returns (string[] memory) {
         return ownerToDevices[user];
     }
 
-    /// @notice Returns all accounts that have registered at least one device
-    /// @return An array of unique owner addresses
+    /// @notice Gets all registered owner addresses
+    /// @return An array of addresses
     function getAllRegisteredOwners() external view returns (address[] memory) {
         return registeredOwners;
+    }
+
+    /// @dev Internal helper to check that tokenURI starts with 'bigw://'
+    /// @param uri The tokenURI string
+    /// @return valid True if valid
+    function _isValidURI(string memory uri) internal pure returns (bool valid) {
+        bytes memory b = bytes(uri);
+        return b.length >= 7 &&
+            b[0] == 'b' &&
+            b[1] == 'i' &&
+            b[2] == 'g' &&
+            b[3] == 'w' &&
+            b[4] == ':' &&
+            b[5] == '/' &&
+            b[6] == '/';
     }
 }
