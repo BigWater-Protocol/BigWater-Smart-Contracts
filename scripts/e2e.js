@@ -46,12 +46,12 @@ async function main() {
   await token.approve(await staking.getAddress(), ethers.parseEther("100"));
   console.log("✅ Funded RewardDistribution and approved Staking");
 
-  // Register 5 devices
-  await registry.registerDevice(user1.address, "device1", "ipfs://1");
-  await registry.registerDevice(user2.address, "device2", "ipfs://2");
-  await registry.registerDevice(user3.address, "device3", "ipfs://3");
-  await registry.registerDevice(user4.address, "device4", "ipfs://4");
-  await registry.registerDevice(user5.address, "device5", "ipfs://5");
+  // Register 5 devices with valid URIs
+  await registry.registerDevice(user1.address, "device1", "bigw://1");
+  await registry.registerDevice(user2.address, "device2", "bigw://2");
+  await registry.registerDevice(user3.address, "device3", "bigw://3");
+  await registry.registerDevice(user4.address, "device4", "bigw://4");
+  await registry.registerDevice(user5.address, "device5", "bigw://5");
   console.log("✅ Devices registered");
 
   // Submit scores
@@ -122,7 +122,7 @@ async function main() {
   // === Batch Register 3 New Users ===
   const batchOwners = [user6.address, user7.address, user8.address];
   const batchDeviceIds = ["device6", "device7", "device8"];
-  const batchTokenURIs = ["ipfs://6", "ipfs://7", "ipfs://8"];
+  const batchTokenURIs = ["bigw://6", "bigw://7", "bigw://8"];
 
   await registry.batchRegisterDevices(batchOwners, batchDeviceIds, batchTokenURIs);
   console.log("✅ Batch upload complete: device6, device7, device8");
@@ -143,14 +143,24 @@ async function main() {
   }
 
   console.log("✅ Batch registration + verification for 3 new users passed");
+
+  // === Test: registerDevice fails with invalid tokenURI ===
+  try {
+    console.log("⛔ Testing registerDevice with invalid URI...");
+    await registry.registerDevice(user1.address, "deviceX", "ipfs://malicious");
+    throw new Error("❌ registerDevice accepted invalid URI (ipfs://...)");
+  } catch (err) {
+    const reason = err?.error?.reason || err?.reason || err?.message;
+    if (reason.includes("URI must start with 'bigw://'")) {
+      console.log("✅ registerDevice correctly rejected invalid URI (ipfs://...)");
+    } else {
+      console.error("❌ Unexpected error during URI validation test:", reason);
+      throw err;
+    }
+  }
+
   console.log("✅ All tests passed");
 }
-
-main().catch((error) => {
-  console.error("❌ Script error:", error);
-  process.exit(1);
-});
-
 
 main().catch((error) => {
   console.error("❌ Script error:", error);
