@@ -2,13 +2,12 @@
 pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /// @title BigWater Device NFT Contract
-/// @author 
 /// @notice ERC721 contract for minting NFTs representing registered devices
 /// @dev Uses ERC721URIStorage to store metadata URIs; only the owner can mint
-contract BigWaterDeviceNFT is ERC721URIStorage, Ownable {
+contract BigWaterDeviceNFT is ERC721URIStorage, Ownable2Step {
     /// @notice Counter for generating unique token IDs
     uint256 private nextId = 1;
 
@@ -19,7 +18,7 @@ contract BigWaterDeviceNFT is ERC721URIStorage, Ownable {
     mapping(uint256 => string) public tokenIdToDeviceId;
 
     /// @notice Deploys the BigWaterDeviceNFT contract with name and symbol
-    constructor() ERC721("BigWater Device NFT", "BWDN") Ownable(msg.sender) {}
+    constructor() ERC721("BigWater Device NFT", "BWDN") {}
 
     /// @notice Mints a new NFT to represent a device
     /// @dev Only callable by the contract owner

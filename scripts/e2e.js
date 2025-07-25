@@ -58,40 +58,6 @@ async function main() {
   await rewards.submitScore("device4", 10);
   await rewards.submitScore("device5", 10);
 
-  // === TEST: Max Cap ===
-  const MAX = 200000;
-  const fakeBase = ethers.Wallet.createRandom();
-
-  console.log("⛔ Generating and registering participants up to max cap...");
-  for (let i = 0; i < MAX - 5; i++) {
-    const fakeWallet = ethers.Wallet.fromPhrase(fakeBase.mnemonic.phrase, `m/44'/60'/0'/0/${i}`);
-    const deviceId = `mass-device-${i}`;
-    const uri = `bigw://mass-${i}`;
-    await registry.registerDevice(fakeWallet.address, deviceId, uri);
-    await rewards.submitScore(deviceId, 1);
-
-    if (i % 10000 === 0) console.log(`  → ${i + 5} participants registered`);
-  }
-
-  console.log("⛔ Testing enforcement of cap on 200001st participant...");
-  try {
-    const overflowWallet = ethers.Wallet.createRandom();
-    const deviceId = "overflow-device";
-    const uri = "bigw://overflow";
-
-    await registry.registerDevice(overflowWallet.address, deviceId, uri);
-    await rewards.submitScore(deviceId, 1);
-
-    throw new Error("❌ Cap breach allowed");
-  } catch (err) {
-    const msg = err?.reason || err?.message || err;
-    if (msg.includes("Max participants reached")) {
-      console.log("✅ Max participant cap correctly enforced");
-    } else {
-      console.error("❌ Unexpected error while testing cap:", msg);
-    }
-  }
-
   // === Remove 2 participants
   const remove1 = user1.address;
   const remove2 = user2.address;

@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
+
 /// @title IDeviceNFT Interface
 /// @notice Interface for the NFT contract used to mint device NFTs
 interface IDeviceNFT {
-    /// @notice Mints a new NFT for a device
-    /// @param to The address receiving the NFT
-    /// @param deviceId The unique string identifier of the device
-    /// @param tokenURI The metadata URI of the device NFT
-    /// @return The ID of the newly minted NFT
     function mint(address to, string memory deviceId, string memory tokenURI) external returns (uint256);
+    function owner() external view returns (address);
 }
 
 /// @title Device Registry Contract
 /// @notice Manages registration of devices and mints NFTs for them
 /// @dev Devices are keyed by the hash of their deviceId. Accepts only URIs starting with 'bigw://'.
-contract DeviceRegistry {
+contract DeviceRegistry is Ownable2Step {
     struct Device {
         address owner;
         string deviceId;
@@ -49,6 +47,7 @@ contract DeviceRegistry {
         require(bytes(deviceId).length > 0, "Empty deviceId");
         require(bytes(tokenURI).length > 0, "Empty tokenURI");
         require(_isValidURI(tokenURI), "URI must start with 'bigw://'");
+        require(nft.owner() == address(this), "Registry must own NFT contract");
 
         bytes32 idHash = keccak256(abi.encodePacked(deviceId));
         require(!devices[idHash].registered, "Already registered");
@@ -73,10 +72,6 @@ contract DeviceRegistry {
         emit DeviceRegistered(owner, deviceId, nftId);
     }
 
-    /// @notice Batch registers multiple devices
-    /// @param owners Array of owner addresses
-    /// @param deviceIds Array of device identifiers
-    /// @param tokenURIs Array of metadata URIs
     function batchRegisterDevices(
         address[] calldata owners,
         string[] calldata deviceIds,
@@ -92,46 +87,29 @@ contract DeviceRegistry {
         }
     }
 
-    /// @notice Gets the owner of a device
-    /// @param deviceId The device ID
-    /// @return The address of the owner
     function getDeviceOwner(string memory deviceId) external view returns (address) {
         bytes32 idHash = keccak256(abi.encodePacked(deviceId));
         return devices[idHash].owner;
     }
 
-    /// @notice Checks if a device is registered
-    /// @param deviceId The device ID
-    /// @return True if registered
     function isDeviceRegistered(string memory deviceId) external view returns (bool) {
         bytes32 idHash = keccak256(abi.encodePacked(deviceId));
         return devices[idHash].registered;
     }
 
-    /// @notice Gets the NFT ID for a device
-    /// @param deviceId The device ID
-    /// @return The NFT ID
     function getDeviceNFT(string memory deviceId) external view returns (uint256) {
         bytes32 idHash = keccak256(abi.encodePacked(deviceId));
         return devices[idHash].nftId;
     }
 
-    /// @notice Gets all device IDs registered by a user
-    /// @param user The owner's address
-    /// @return An array of device IDs
     function getDevicesByOwner(address user) external view returns (string[] memory) {
         return ownerToDevices[user];
     }
 
-    /// @notice Gets all registered owner addresses
-    /// @return An array of addresses
     function getAllRegisteredOwners() external view returns (address[] memory) {
         return registeredOwners;
     }
 
-    /// @dev Internal helper to check that tokenURI starts with 'bigw://'
-    /// @param uri The tokenURI string
-    /// @return valid True if valid
     function _isValidURI(string memory uri) internal pure returns (bool valid) {
         bytes memory b = bytes(uri);
         return b.length >= 7 &&
