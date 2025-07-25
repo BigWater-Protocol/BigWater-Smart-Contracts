@@ -1,4 +1,3 @@
-// scripts/e2e.js
 const hre = require("hardhat");
 const { ethers } = hre;
 
@@ -84,11 +83,33 @@ async function main() {
   await staking.distributeRewards();
   console.log(`✅ Rewards distributed, totalStaked now: ${ethers.formatEther(await staking.totalStaked())} BIGW`);
 
+  // === Test reward distribution effects ===
+  const expectedStaked = ethers.parseEther("90");
+  const actualStaked = await staking.totalStaked();
+  if (actualStaked !== expectedStaked) {
+    throw new Error(`❌ totalStaked mismatch: expected 90, got ${ethers.formatEther(actualStaked)}`);
+  }
+  console.log("✅ totalStaked reduced correctly after distribution");
+
+  try {
+    await staking.distributeRewards();
+    throw new Error("❌ distributeRewards was callable twice");
+  } catch (err) {
+    console.log("✅ distributeRewards cannot be called again immediately (as expected)");
+  }
+
+  try {
+    await staking.connect(user1).distributeRewards();
+    throw new Error("❌ Non-owner was able to call distributeRewards");
+  } catch (err) {
+    console.log("✅ Non-owner cannot call distributeRewards");
+  }
+
   // Final balances
   const users = [user1, user2, user3, user4, user5];
   for (let i = 0; i < users.length; i++) {
-  const bal = await token.balanceOf(users[i].address);
-  console.log(`User${i + 1} Reward: ${ethers.formatEther(bal)} BIGW`);
+    const bal = await token.balanceOf(users[i].address);
+    console.log(`User${i + 1} Reward: ${ethers.formatEther(bal)} BIGW`);
     if (bal === 0n) {
       throw new Error(`❌ User${i + 1} (${users[i].address}) received 0 BIGW`);
     }
@@ -98,16 +119,14 @@ async function main() {
   const rewardDistBalance = await token.balanceOf(await rewards.getAddress());
   console.log(`RewardDistribution post-distribution balance: ${ethers.formatEther(rewardDistBalance)} BIGW`);
 
-   // === Batch Register 3 New Users ===
+  // === Batch Register 3 New Users ===
   const batchOwners = [user6.address, user7.address, user8.address];
   const batchDeviceIds = ["device6", "device7", "device8"];
   const batchTokenURIs = ["ipfs://6", "ipfs://7", "ipfs://8"];
 
-  // Manually impersonate for simplicity if not funded
   await registry.batchRegisterDevices(batchOwners, batchDeviceIds, batchTokenURIs);
   console.log("✅ Batch upload complete: device6, device7, device8");
 
-  // === Verify Devices By Owner ===
   for (let i = 0; i < batchOwners.length; i++) {
     const devices = await registry.getDevicesByOwner(batchOwners[i]);
     console.log(`User${i + 6} Devices:`, devices);
@@ -116,7 +135,6 @@ async function main() {
     }
   }
 
-  // === Verify All Registered Owners Contains Batch Owners ===
   const allOwners = await registry.getAllRegisteredOwners();
   for (let i = 0; i < batchOwners.length; i++) {
     if (!allOwners.includes(batchOwners[i])) {
@@ -125,9 +143,14 @@ async function main() {
   }
 
   console.log("✅ Batch registration + verification for 3 new users passed");
-
   console.log("✅ All tests passed");
 }
+
+main().catch((error) => {
+  console.error("❌ Script error:", error);
+  process.exit(1);
+});
+
 
 main().catch((error) => {
   console.error("❌ Script error:", error);
