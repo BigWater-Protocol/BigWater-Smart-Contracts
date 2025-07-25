@@ -67,7 +67,6 @@ async function main() {
     const fakeWallet = ethers.Wallet.fromPhrase(fakeBase.mnemonic.phrase, `m/44'/60'/0'/0/${i}`);
     const deviceId = `mass-device-${i}`;
     const uri = `bigw://mass-${i}`;
-    await nft.connect(deployer).mint(fakeWallet.address, deviceId, uri);
     await registry.registerDevice(fakeWallet.address, deviceId, uri);
     await rewards.submitScore(deviceId, 1);
 
@@ -81,6 +80,8 @@ async function main() {
     const uri = "bigw://overflow";
 
     await registry.registerDevice(overflowWallet.address, deviceId, uri);
+    await rewards.submitScore(deviceId, 1);
+
     throw new Error("❌ Cap breach allowed");
   } catch (err) {
     const msg = err?.reason || err?.message || err;
