@@ -80,7 +80,6 @@ async function main() {
     const deviceId = "overflow-device";
     const uri = "bigw://overflow";
 
-    await nft.connect(deployer).mint(overflowWallet.address, deviceId, uri);
     await registry.registerDevice(overflowWallet.address, deviceId, uri);
     throw new Error("❌ Cap breach allowed");
   } catch (err) {
