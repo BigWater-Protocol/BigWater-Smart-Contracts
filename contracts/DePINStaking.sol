@@ -1,70 +1,69 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-/// @title Minimal ERC20 interface used for staking and reward transfers
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
+
+/// @title ERC20 Interface
+/// @notice Minimal ERC20 interface for staking and reward transfer
 interface IERC20 {
-    /// @notice Transfers tokens from one address to another using allowance
-    /// @param sender The address to transfer tokens from
-    /// @param recipient The address to transfer tokens to
-    /// @param amount The number of tokens to transfer
+    /// @notice Transfer tokens from a sender to a recipient
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 
-    /// @notice Transfers tokens from caller's account to another address
-    /// @param to The address to receive tokens
-    /// @param amount The number of tokens to transfer
+    /// @notice Transfer tokens from this contract to a recipient
     function transfer(address to, uint256 amount) external returns (bool);
 }
 
-/// @title Interface for external reward scoring system
+/// @title RewardDistribution Interface
+/// @notice Interface for reading scores and participants in the reward program
 interface IRewardDistribution {
-    /// @notice Returns the score for a given participant
-    /// @param owner The participant address
-    /// @return The score assigned to the participant
+    /// @notice Get the performance score for a specific user
     function getScore(address owner) external view returns (uint256);
 
-    /// @notice Returns a list of all participant addresses
-    /// @return Array of participant addresses
+    /// @notice Get the list of all participants eligible for rewards
     function getParticipants() external view returns (address[] memory);
 }
 
-/// @title DePIN Staking Contract with Fixed Emission
-/// @author 
-/// @notice Allows users to stake tokens and distributes a fixed reward pool based on external scores
-/// @dev Emission is fixed per round and distributed according to participant scores from RewardDistribution
-contract DePINStaking {
-    /// @notice ERC20 token used for staking and reward distribution
+/// @title DePINStaking
+/// @notice Handles staking of BIGW tokens and distributes rewards based on scores
+/// @dev Uses a fixed emission reward model distributed proportionally to scores from IRewardDistribution
+contract DePINStaking is Ownable2Step {
+    /// @notice The BIGW token used for staking and rewards
     IERC20 public immutable bwtr;
 
-    /// @notice External contract providing participant scores
+    /// @notice The external reward contract that tracks scores and participants
     IRewardDistribution public immutable rdc;
 
-    /// @notice Total tokens currently staked in the pool
+    /// @notice Total amount of BIGW tokens currently staked
     uint256 public totalStaked;
 
-    /// @notice Fixed reward emission per distribution round (10 BIGW)
+    /// @notice Fixed amount of BIGW emitted per reward cycle
     uint256 public constant FIXED_EMISSION = 10 ether;
 
-    /// @notice Emitted when a user stakes tokens
-    /// @param from The address staking the tokens
+    /// @notice Emitted when a user stakes BIGW tokens
+    /// @param from The staker's address
     /// @param amount The amount of tokens staked
     event Staked(address indexed from, uint256 amount);
 
-    /// @notice Emitted when rewards are distributed
-    /// @param to The address receiving the reward
-    /// @param reward The reward amount transferred
+    /// @notice Emitted when rewards are distributed to a user
+    /// @param to The recipient of the reward
+    /// @param reward The amount of BIGW tokens distributed
     event YieldDistributed(address indexed to, uint256 reward);
 
-    /// @notice Initializes the contract with token and reward distribution references
-    /// @param _bwtr The address of the ERC20 token (BWTR)
-    /// @param _rdc The address of the reward distribution contract
-    constructor(address _bwtr, address _rdc) {
+    /// @notice Initializes the staking contract
+    /// @param _bwtr Address of the BIGW token contract
+    /// @param _rdc Address of the reward distribution contract
+    /// @param initialOwner Address of the contract owner
+    constructor(address _bwtr, address _rdc, address initialOwner)
+        Ownable(initialOwner) 
+    {
         require(_bwtr != address(0) && _rdc != address(0), "Invalid addresses");
         bwtr = IERC20(_bwtr);
         rdc = IRewardDistribution(_rdc);
     }
 
-    /// @notice Allows any user to stake tokens into the pool
-    /// @param amount The number of tokens to stake
+    /// @notice Stake BIGW tokens into the contract
+    /// @dev Requires prior approval for the transfer
+    /// @param amount Amount of BIGW tokens to stake
     function stake(uint256 amount) external {
         require(amount > 0, "Amount must be > 0");
         require(bwtr.transferFrom(msg.sender, address(this), amount), "Transfer failed");
@@ -73,9 +72,9 @@ contract DePINStaking {
         emit Staked(msg.sender, amount);
     }
 
-    /// @notice Distributes fixed rewards (10 BIGW) to participants based on score share
-    /// @dev Reduces `totalStaked` by the emitted reward pool
-    function distributeRewards() external {
+    /// @notice Distribute rewards proportionally based on scores
+    /// @dev Can only be called by the contract owner
+    function distributeRewards() external onlyOwner {
         address[] memory participants = rdc.getParticipants();
         require(participants.length > 0, "No participants");
 

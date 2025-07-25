@@ -2,7 +2,7 @@ name: Run Hardhat Script
 
 on:
   push:
-    branches: [ main ]
+    branches: [ quill-assessment ]
   pull_request:
 
 jobs:
