@@ -103,7 +103,6 @@ async function main() {
   const newWallet = ethers.Wallet.createRandom();
   const newDevice = "rejoin-device";
   const newUri = "bigw://rejoin";
-  await nft.connect(deployer).mint(newWallet.address, newDevice, newUri);
   await registry.registerDevice(newWallet.address, newDevice, newUri);
   await rewards.submitScore(newDevice, 42);
   console.log("✅ Re-registered 1 participant after removal");
