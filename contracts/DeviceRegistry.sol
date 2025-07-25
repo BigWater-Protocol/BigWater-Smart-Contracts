@@ -34,7 +34,7 @@ contract DeviceRegistry is Ownable2Step {
     /// @notice Initializes the registry with the NFT contract address
     /// @param _nftAddress Address of the NFT contract
     /// @param initialOwner Address of the initial owner of this registry
-    constructor(address _nftAddress, address initialOwner) Ownable2Step(initialOwner) {
+    constructor(address _nftAddress, address initialOwner) Ownable(initialOwner) {
         require(_nftAddress != address(0), "Invalid NFT address");
         nft = IDeviceNFT(_nftAddress);
     }

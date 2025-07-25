@@ -18,7 +18,10 @@ contract BigWaterDeviceNFT is ERC721URIStorage, Ownable2Step {
     mapping(uint256 => string) public tokenIdToDeviceId;
 
     /// @notice Deploys the BigWaterDeviceNFT contract with name and symbol
-    constructor(address initialOwner) ERC721("BigWater Device NFT", "BWDN") Ownable2Step(initialOwner) {}
+    constructor(address initialOwner)
+        ERC721("BigWater Device NFT", "BWDN")
+        Ownable(initialOwner)
+    {}
 
     /// @notice Mints a new NFT to represent a device
     /// @dev Only callable by the contract owner
@@ -44,15 +47,11 @@ contract BigWaterDeviceNFT is ERC721URIStorage, Ownable2Step {
     }
 
     /// @notice Returns the deviceId associated with a given tokenId
-    /// @param tokenId The ID of the NFT
-    /// @return deviceId The string identifier of the device
     function getDeviceId(uint256 tokenId) external view returns (string memory) {
         return tokenIdToDeviceId[tokenId];
     }
 
     /// @notice Returns the tokenId associated with a given deviceId
-    /// @param deviceId The string identifier of the device
-    /// @return tokenId The ID of the NFT that represents the device
     function getTokenId(string memory deviceId) external view returns (uint256) {
         return deviceIdToTokenId[deviceId];
     }
