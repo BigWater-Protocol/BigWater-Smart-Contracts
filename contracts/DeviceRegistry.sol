@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
 interface IDeviceNFT {
     function mint(address to, string memory deviceId, string memory tokenURI) external returns (uint256);
     function owner() external view returns (address);
+    function acceptOwnership() external;
 }
 
 /// @title Device Registry Contract
@@ -37,6 +38,11 @@ contract DeviceRegistry is Ownable2Step {
     constructor(address _nftAddress, address initialOwner) Ownable(initialOwner) {
         require(_nftAddress != address(0), "Invalid NFT address");
         nft = IDeviceNFT(_nftAddress);
+    }
+
+    /// @notice Accept ownership of the NFT contract (completes Ownable2Step)
+    function acceptNFTContractOwnership() external onlyOwner {
+        nft.acceptOwnership();
     }
 
     /// @notice Registers a new device and mints an NFT
