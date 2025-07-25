@@ -54,7 +54,7 @@ async function main() {
   await token.approve(await staking.getAddress(), ethers.parseEther("100"));
   console.log("✅ Funded RewardDistribution and approved Staking");
 
-  // Register devices
+  //  === Test: Register devices successfully
   await registry.registerDevice(user1.address, "device1", "bigw://1");
   await registry.registerDevice(user2.address, "device2", "bigw://2");
   await registry.registerDevice(user3.address, "device3", "bigw://3");
@@ -62,7 +62,7 @@ async function main() {
   await registry.registerDevice(user5.address, "device5", "bigw://5");
   console.log("✅ Devices registered");
 
-  // Submit scores
+  //  === Test: Submit scores successfully
   await rewards.submitScore("device1", 30);
   await rewards.submitScore("device2", 20);
   await rewards.submitScore("device3", 10);
@@ -70,41 +70,49 @@ async function main() {
   await rewards.submitScore("device5", 10);
   console.log("✅ Scores submitted");
 
-  // Remove 2 participants
+  //  === Test: Remove 2 participants successfully
   await rewards.removeParticipant(user4.address);
   await rewards.removeParticipant(user5.address);
   console.log(`✅ Removed participants: ${user1.address}, ${user2.address}`);
 
-  // Register new participant
+  //  === Test: Register new participant and submit score successfully
   const newWallet = ethers.Wallet.createRandom();
   const newDevice = "rejoin-device";
   const newUri = "bigw://rejoin";
 
-  // Register device for new wallet
   await registry.registerDevice(newWallet.address, newDevice, newUri);
   await rewards.submitScore(newDevice, 42);
   console.log("✅ Re-registered 1 participant after removal");
 
-   // Print actual BIGW rewards
-  const participants = await rewards.getParticipants();
-  let totalScore = 0n;
-  const scores = [];
+  // === Test: registerDevice fails with invalid tokenURI ===
+  try {
+    await registry.registerDevice(user1.address, "deviceX", "ipfs://malicious");
+    throw new Error("❌ registerDevice accepted invalid URI (ipfs://...)");
+  } catch (err) {
+    const reason = err?.error?.reason || err?.reason || err?.message;
+    if (reason.includes("URI must start with 'bigw://'")) {
+      console.log("✅ registerDevice correctly rejected invalid URI (ipfs://...)");
+    } else {
+      console.error("❌ Unexpected error during URI validation test:", reason);
+      throw err;
+    }
+  }
 
+  //  === Test: Print actual BIGW scores successfully
+  const participants = await rewards.getParticipants();
   for (const addr of participants) {
     const score = await rewards.getScore(addr);
     if (score === 0n) throw new Error(`❌ ${addr} has 0 score.`);
-    totalScore += score;
-    scores.push({ addr, score });
   }
 
-  // Stake
+  // === Test: Stake successfully
   const balanceBefore = await token.balanceOf(deployer.address);
   await staking.stake(ethers.parseEther("100"));
   const balanceAfter = await token.balanceOf(deployer.address);
   console.log(`✅ Staked: 100 BIGW`);
   console.log(`Deployer balance before/after stake: ${ethers.formatEther(balanceBefore)} → ${ethers.formatEther(balanceAfter)} BIGW`);
 
-  // Distribute rewards
+  // === Test: Distribute rewards 
   await staking.distributeRewards();
   console.log(`✅ Rewards distributed, totalStaked: ${ethers.formatEther(await staking.totalStaked())} BIGW`);
 
@@ -117,10 +125,6 @@ async function main() {
   }
   console.log("✅ All users received rewards > 0");
 
-  // Remaining balance in RewardDistribution
-  const rewardDistBalance = await token.balanceOf(await rewards.getAddress());
-  console.log(`RewardDistribution remaining balance: ${ethers.formatEther(rewardDistBalance)} BIGW`);
-
   // === Test: Batch Register 3 New Users
   const batchOwners = [user6.address, user7.address, user8.address];
   const batchDeviceIds = ["device6", "device7", "device8"];
@@ -128,7 +132,7 @@ async function main() {
   await registry.batchRegisterDevices(batchOwners, batchDeviceIds, batchTokenURIs);
   console.log("✅ Batch upload: device6, device7, device8");
 
-  // === Test: Verify devices
+  // === Test: Verify devices on state
   for (let i = 0; i < batchOwners.length; i++) {
     const devices = await registry.getDevicesByOwner(batchOwners[i]);
     console.log(`User${i + 6} Devices:`, devices);
@@ -144,22 +148,6 @@ async function main() {
       throw new Error(`❌ Batch owner ${batchOwners[i]} not found in registry`);
     }
   }
-
-  // === Test: registerDevice fails with invalid tokenURI ===
-  try {
-    console.log("⛔ Testing registerDevice with invalid URI...");
-    await registry.registerDevice(user1.address, "deviceX", "ipfs://malicious");
-    throw new Error("❌ registerDevice accepted invalid URI (ipfs://...)");
-  } catch (err) {
-    const reason = err?.error?.reason || err?.reason || err?.message;
-    if (reason.includes("URI must start with 'bigw://'")) {
-      console.log("✅ registerDevice correctly rejected invalid URI (ipfs://...)");
-    } else {
-      console.error("❌ Unexpected error during URI validation test:", reason);
-      throw err;
-    }
-  }
-
 
   console.log("🎉 All tests completed successfully");
 }
