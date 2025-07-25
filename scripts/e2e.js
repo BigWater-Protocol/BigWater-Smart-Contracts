@@ -149,6 +149,24 @@ async function main() {
     }
   }
 
+  // === Test: distributeRewards fails if called by non-owner ===
+  try {
+    await staking.connect(user1).distributeRewards();
+    throw new Error("❌ distributeRewards should fail for non-owner but did not");
+  } catch (err) {
+    const reason = err?.error?.reason || err?.reason || err?.message;
+    if (
+      reason.includes("Ownable: caller is not the owner") ||
+      reason.includes("caller is not the owner") ||
+      reason.includes("OwnableUnauthorizedAccount")
+    ) {
+      console.log("✅ distributeRewards correctly failed for non-owner caller");
+    } else {
+      console.error("❌ Unexpected error message for non-owner distributeRewards call:", reason);
+      throw err;
+    }
+  }
+
   console.log("🎉 All tests completed successfully");
 }
 
