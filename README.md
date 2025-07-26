@@ -24,7 +24,7 @@ npm install
 
 ## 🚀 Running the Script
 
-To deploy and run the full e2e test locally:
+To deploy and run the full e2e test locally using Hardhat:-
 
 ```bash
 npx hardhat run scripts/e2e.js
