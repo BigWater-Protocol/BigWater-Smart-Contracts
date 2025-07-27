@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.23;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
@@ -37,7 +37,7 @@ contract DePINStaking is Ownable2Step {
     uint256 public totalStaked;
 
     /// @notice Fixed amount of BIGW emitted per reward cycle
-    uint256 public constant FIXED_EMISSION = 10 ether;
+    uint256 public constant FIXED_EMISSION = 10_000_000_000_000;
 
     /// @notice Emitted when a user stakes BIGW tokens
     /// @param from The staker's address

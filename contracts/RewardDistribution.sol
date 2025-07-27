@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.23;
 
 /// @title Reward Distribution Contract with Max Participants and Admin-Controlled Submission & Removal
 /// @notice Manages reward scoring for devices registered in a device registry and enforces a cap on active participants

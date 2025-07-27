@@ -8,8 +8,8 @@ async function main() {
 
   // Deploy BigWaterToken
   const Token = await ethers.getContractFactory("BigWaterToken");
-  const cap = ethers.parseEther("110000");
-  const initialSupply = ethers.parseEther("11000");
+  const cap = ethers.parseEther("10000000000");
+  const initialSupply = ethers.parseEther("10000000000");
   const token = await Token.deploy(deployer.address, initialSupply, cap);
   await token.waitForDeployment();
   console.log(`BIGW deployed at: ${await token.getAddress()}`);
@@ -50,8 +50,8 @@ async function main() {
   console.log(`DePINStaking deployed at: ${await staking.getAddress()}`);
 
   // Fund RewardDistribution and approve DePINStaking
-  await token.transfer(await rewards.getAddress(), ethers.parseEther("1000"));
-  await token.approve(await staking.getAddress(), ethers.parseEther("100"));
+  await token.transfer(await rewards.getAddress(), ethers.parseEther("1000000"));
+  await token.approve(await staking.getAddress(), ethers.parseEther("1000000"));
   console.log("✅ Funded RewardDistribution and approved Staking");
 
   //  === Test: Register devices successfully
@@ -107,9 +107,9 @@ async function main() {
 
   // === Test: Stake successfully
   const balanceBefore = await token.balanceOf(deployer.address);
-  await staking.stake(ethers.parseEther("100"));
+  await staking.stake(ethers.parseEther("1000000"));
   const balanceAfter = await token.balanceOf(deployer.address);
-  console.log(`✅ Staked: 100 BIGW`);
+  console.log(`✅ Staked: 100000 BIGW`);
   console.log(`Deployer balance before/after stake: ${ethers.formatEther(balanceBefore)} → ${ethers.formatEther(balanceAfter)} BIGW`);
 
   // === Test: Distribute rewards 

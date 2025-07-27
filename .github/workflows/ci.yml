@@ -2,7 +2,7 @@ name: Run Hardhat Script
 
 on:
   push:
-    branches: [ main ]
+    branches: [ xdc/deployment ]
   pull_request:
 
 jobs:
