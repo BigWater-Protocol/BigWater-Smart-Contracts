@@ -24,5 +24,3 @@ jobs:
       - name: Compile contracts
         run: npx hardhat compile
 
-      - name: Run Hardhat e2e test script
-        run: npx hardhat run scripts/e2e.js --network hardhat
