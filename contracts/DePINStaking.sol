@@ -37,7 +37,7 @@ contract DePINStaking is Ownable2Step {
     uint256 public totalStaked;
 
     /// @notice Fixed amount of BIGW emitted per reward cycle
-    uint256 public constant FIXED_EMISSION = 10**16;
+    uint256 public constant FIXED_EMISSION = 1 ether;
 
     /// @notice Emitted when a user stakes BIGW tokens
     /// @param from The staker's address
