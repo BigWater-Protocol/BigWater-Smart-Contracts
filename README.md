@@ -37,6 +37,5 @@ The script will:
 3. Submit mock scores
 4. Stake BIGW tokens from the deployer
 5. Distribute rewards based on the scores
-6. Check pre- and post-stake balances
-
+6. Some other tests for protocol
 ---
